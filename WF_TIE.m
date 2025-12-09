@@ -54,9 +54,20 @@ zfocus1       = 0;
 regparam      = 5*10^-6;
 [Nx,Ny,Nz]    = size(Inten);
 Nsl           = 300; 
+
+tic;
+
 [RePhase1,SG] = RunGaussionProcess(Inten,zfocus1,zvec,lambda,ps,Nsl,regparam);
+
+t = toc;
+
+fprintf('Function took %.4f seconds to run.\n', t);
+
 RePhase1      = RePhase1/mean(mean(mean(Inten)));
 Io            = 1; 
+
+tic;
+
 
 P_exp   =  RePhase1;
 F_P_exp =  (fftshift(fft2(P_exp)));
@@ -67,8 +78,11 @@ T2       = (2*H.*SG.*k)./(Io.*4.*pi.*pi.*(U.^2+V.^2));
 T3       = H;
 T        = T1 ; 
 
+save("WF_TIE_data.mat", "RePhase1","ApoFunc_UI","lambda","dpix","N","W","Ncut","wo","T","Kotf","H")
+
 F_P_exp = fftshift(fft2(P_exp));
 [Al,al] = Object_Para_Estimation(F_P_exp,T,Kotf,U,V,W,lambda,d);
+
 
 Al      = Al ; 
 K       = sqrt(U.^2+V.^2);
@@ -77,6 +91,9 @@ Sigamp  = Objamp.*T;
 
 [WF_P_exp,Noise_F_P_exp] = Weiner_filter_center(F_P_exp,U,V,Al,al,T,Kotf,K,W,d,lambda);
 WP_exp                   = real(ifft2(ifftshift(WF_P_exp)));
+t = toc;
+
+fprintf('Function took %.4f seconds to run.\n', t);
 
 figure;
 imagesc(RePhase1)
@@ -123,6 +140,8 @@ CC=(K>0.3*Kotf).*(K<0.4*Kotf);
 NSK=(NoisySkHk).*CC;
 A = sum(sum(abs(NSK)))./sum(sum(CC));
 alpha =-0.5;
+
+
 OBJparam = [A alpha];
 Objparaopt=@(OBJparam)Objoptfunc(OBJparam,NoisySkHk,Kotf,U,V,K,Otf,CC,W,lambda,d)
 options = optimset('LargeScale','off','Algorithm','active-set','MaxFunEvals',500,'MaxIter',500,'Display','notify');
